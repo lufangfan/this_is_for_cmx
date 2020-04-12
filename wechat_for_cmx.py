@@ -18,7 +18,9 @@ __product_name = PyCharm
                                           ┃┫┫  ┃┫┫
                                           ┗┻┛  ┗┻┛
 """
+import json
 import threading
+import urllib.request
 
 import itchat
 import requests
@@ -28,7 +30,8 @@ from itchat.content import *
 
 lunar_calendar_birthday = '1998-07-17'
 the_gregorian_calendar_birthday = '1998-09-07'
-nick_name = 'FFD'  # 微信昵称
+# nick_name = 'FFD'  # 微信昵称
+nick_name = '陈哇噻'  # 微信昵称
 fall_in_love_time = '2020-2-7 02:00:00'
 first_time_i_saw_you = '2020-3-21 10:30:00'
 morning_time = '08:00:00'
@@ -37,6 +40,9 @@ lunch_time = '12:00:00'
 fifteen_o_clock = '15:00:00'
 dinner_time = '18:00:00'
 night_time = '22:00:00'
+tuling_key = '4ea52cf43ec84c4faca1ddc9b5d9e257'
+api_url = "http://openapi.tuling123.com/openapi/api/v2"
+user_id = '001'
 
 
 def get_king_soft_power_word():
@@ -54,11 +60,53 @@ def trans_str_time_to_datetime(str_time):
     return datetime.datetime.strptime(str(datetime.date.today()) + ' ' + str_time, '%Y-%m-%d %H:%M:%S')
 
 
+def get_message(message):
+    req = {
+        "perception":
+            {
+                "inputText":
+                    {
+                        "text": message
+                    },
+
+                "selfInfo":
+                    {
+                        "location":
+                            {
+                                "city": "深圳",
+                                "province": "广州",
+                                "street": "坂田街道"
+                            }
+                    }
+            },
+        "userInfo":
+            {
+                "apiKey": tuling_key,
+                "userId": user_id
+            }
+    }
+    req = json.dumps(req).encode('utf8')
+    http_post = urllib.request.Request(api_url, data=req, headers={'content-type': 'application/json'})
+    response = urllib.request.urlopen(http_post)
+    response_str = response.read().decode('utf8')
+    response_dic = json.loads(response_str)
+    print(response_dic)
+    if response_dic['intent']['code'] == 4003:
+        results_text = '宝宝，我每天只能自动陪你说100句话，如果到了这个次数，我就只会说，我爱你宝贝！'
+    else:
+        results_text = response_dic['results'][0]['values']['text']
+
+    return results_text
+
+
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
 def text_reply(msg):
     if msg.user['NickName'] == nick_name:
         print('收到来自{}的消息'.format(nick_name))
-    # msg.user.send('%s: %s' % (msg.type, msg.text))
+        print('msg', msg)
+        reply = get_message(msg.text)
+        time.sleep(1)
+        msg.user.send(reply)
 
 
 def send_messages_regularly():
@@ -137,11 +185,10 @@ def auto_reply_message():
 if __name__ == '__main__':
     itchat.auto_login(hotReload=True)
     print('登录成功！！！')
-    # print(cur_time)
-
     t1 = threading.Thread(target=send_messages_regularly)
     t2 = threading.Thread(target=auto_reply_message)
     t1.start()
     t2.start()
 
-    # print(trans_str_time_to_datetime(morning_time))
+
+# print(trans_str_time_to_datetime(morning_time))
